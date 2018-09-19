@@ -2,6 +2,7 @@
 import cv2
 import imutils
 import numpy as np
+from collections import deque
 
 # global variables
 bg = None
@@ -58,10 +59,13 @@ if __name__ == "__main__":
     camera = cv2.VideoCapture(0)
 
     # region of interest (ROI) coordinates
-    top, right, bottom, left = 10, 350, 225, 590
+    top, right, bottom, left = 10, 250, 325, 690
 
     # initialize num of frames
     num_frames = 0
+
+    # initialise the centre points
+    pts = deque(maxlen=64)
 
     # keep looping, until interrupted
     while(True):
@@ -94,6 +98,7 @@ if __name__ == "__main__":
         else:
             # segment the hand region
             hand = segment(gray)
+            center = None
 
             # check whether hand region is segmented
             if hand is not None:
@@ -103,10 +108,34 @@ if __name__ == "__main__":
 
                 # draw the segmented region and display the frame
                 cv2.drawContours(clone, [segmented + (right, top)], -1, (0, 0, 255))
+
+                # find the largest contour in the mask, then use
+                # it to compute the minimum enclosing circle and
+                # centroid
+                ((x, y), radius) = cv2.minEnclosingCircle(segmented)
+                M = cv2.moments(segmented)
+                center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+
                 cv2.imshow("Thesholded", thresholded)
+
+            # update the points queue
+            pts.appendleft(center)
+            print(center)
 
         # draw the segmented hand
         cv2.rectangle(clone, (left, top), (right, bottom), (0,255,0), 2)
+
+        # loop over the set of tracked points
+        for i in range(1, len(pts)):
+            # if either of the tracked points are None, ignore
+            # them
+            if pts[i - 1] is None or pts[i] is None:
+                continue
+
+            # otherwise, compute the thickness of the line and
+            # draw the connecting lines
+            thickness = int(np.sqrt(64 / float(i + 1)) * 2.5)
+            cv2.line(clone, pts[i - 1], pts[i], (0, 0, 255), 10)
 
         # increment the number of frames
         num_frames += 1
