@@ -13,8 +13,8 @@ if __name__ == "__main__":
     # define the lower and upper boundaries of the "green"
     # ball in the HSV color space, then initialize the
     # list of tracked points
-    greenLower = (35, 37, 51)
-    greenUpper = (70, 255, 255)
+    greenLower = (35, 0, 51)
+    greenUpper = (99, 255, 240)
     pts = deque(maxlen=64)
 
     vs = cv2.VideoCapture(0)
@@ -51,6 +51,8 @@ if __name__ == "__main__":
         cnts = cnts[0] if imutils.is_cv2() else cnts[1]
         center = None
 
+        colour = 255
+
         # only proceed if at least one contour was found
         if len(cnts) > 0:
             # find the largest contour in the mask, then use
@@ -81,11 +83,13 @@ if __name__ == "__main__":
 
             # otherwise, compute the thickness of the line and
             # draw the connecting lines
-            thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
+            thickness = int(np.sqrt(64 / float(i + 1)) * 2.5)
             cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
+            colour = (colour+1)%255
 
         cv2.imshow("Frame", frame)
         cv2.imshow("Mask", mask)
+
 
         # observe the keypress by the user
         keypress = cv2.waitKey(1) & 0xFF
